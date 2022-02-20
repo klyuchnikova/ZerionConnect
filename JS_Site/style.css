@@ -1,0 +1,195 @@
+html {
+  font-size: 20px;
+}
+
+body,html {
+  margin: 0;
+  padding: 0;
+  font-family: 'Bebas', arial;
+}
+
+.token_text {
+  position: absolute;
+  left: 50%;
+  top: 45%;
+  transform: translate(-50%,-50%);
+}
+
+.token_send {
+  position: absolute;
+  left: 50%;
+  top: 55%;
+  transform: translate(-50%,-50%);
+}
+
+.need_gray {
+  color: gray;
+}
+
+.need_blue {
+  color: blue;
+}
+
+.input {
+  height: calc(1.5rem);
+  padding: 0.375rem 0.75rem;
+  font-family: inherit;
+  font-size: 1rem;
+  font-weight: 400;
+  line-height: 1.5;
+  color: #212529;
+  background-color: #fff;
+  background-clip: padding-box;
+  border: 1px solid #bdbdbd;
+  border-radius: 0.25rem;
+  margin: 0 5px;
+}
+
+.button {
+  font-family: inherit;
+  font-size: 1.2rem;
+  background-color: white;
+  border-radius: 12px;
+  padding: 9px;
+  border: 1px solid #bdbdbd;
+  margin: 0 5px;
+}
+
+.token_send_in {
+  display: flex;
+}
+
+.z_button {
+  font-family: inherit;
+  font-size: 1.5rem;
+  background-color: white;
+  border-radius: 12px;
+  padding: 20px;
+  border: 1px solid #bdbdbd;
+  margin: 0 5px;
+}
+
+.container {
+  width: 80%;
+  margin-left: 10%;
+  margin-right: 10%;
+}
+
+.row {
+  display: flex;
+}
+
+.title {
+  text-align: center;
+  width: 100%;
+  float: left;
+  /*font-size: 3rem;*/
+}
+
+.profile_data {
+  width: 100%;
+  float: left;
+}
+
+.absolute_change {
+  width: 33.3333%;
+  float: left;
+}
+
+.assets_value {
+  width: 33.3333%;
+  float: left;
+}
+
+.relative_change {
+  width: 33.3333%;
+  float: left;
+}
+
+.box_text {
+  text-align: center;
+}
+
+.absolute_change_val {
+  text-align: center;
+}
+
+.assets_value_val {
+  text-align: center;
+}
+
+.relative_change_val {
+  text-align: center;
+}
+
+.table {
+  display: flex;
+  flex-wrap: wrap;
+  flex-direction: row;
+  justify-content: space-between;
+  margin: auto;
+}
+
+.asset {
+  display: flex;
+  flex-wrap: wrap;
+  flex-direction: row;
+  border: 1px solid #696989;
+  width: 30%;
+  height: 200px;
+  border-radius: 12px;
+  margin-bottom: 10px;
+}
+
+.logo_in_asset {
+  text-align: center;
+  width: 19%;
+  height: 33%;
+  margin: 0px;
+}
+
+.idx_in_asset {
+  width: 81%;
+  margin: 0px;
+}
+
+.idx_in_asset_text {
+  font-size: 0.5rem;
+  text-align: center;
+  margin: 10%;
+}
+
+.name_in_asset {
+  text-align: center;
+  width: 100%;
+  margin: 0px;
+}
+
+.quantity_in_asset {
+  text-align: center;
+  width: 100%;
+  margin: 0px;
+  color: darkgray;
+  font-weight: lighter;
+}
+
+.relative_change_in_asset {
+  text-align: center;
+  width: 100%;
+  margin: 0px;
+  color: darkgray;
+  font-weight: lighter;
+}
+
+.share_text {
+  text-align: right;
+  width: 50%;
+  float: left;
+}
+
+.ya-share2 {
+  padding: 1em;
+  text-align: left;
+  width: 50%;
+  float: left;
+}

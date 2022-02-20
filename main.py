@@ -1,4 +1,5 @@
 import asyncio
+
 import socketio
 from quart import Quart, request, jsonify
 
@@ -42,7 +43,7 @@ def process_assets():
         else:
             current_asset_price = asset_value
         assets[i] = {
-            "id" : asset_id,
+            "id": asset_id,
             "name": name,
             "icon_url": asset.get("icon_url", None),
             "relative_change_24h": relative_change_24h,
@@ -88,6 +89,7 @@ async def get_profile(token):
     while ADDRESS_PORTFOLIO is None:
         await asyncio.sleep(0)
 
+
 async def get_assets(token):
     global ADDRESS_ASSETS
     await client.emit('subscribe', {
@@ -99,6 +101,7 @@ async def get_assets(token):
     }, namespace='/address')
     while ADDRESS_ASSETS is None:
         await asyncio.sleep(0)
+
 
 async def get_all(token):
     global ADDRESS_PORTFOLIO
@@ -135,23 +138,26 @@ async def get_all_info():
     return jsonify({'portfolio': profile, 'assets': assets})
 
 
-@app.route('/get_profile_info', methods=['GET', 'POST', 'OPTIONS'])
-async def get_profile_info():
-    user_token = (await request.json)["user_token"]
+@app.route('/get_profile_info/<user_token>', methods=['GET', 'POST', 'OPTIONS'])
+async def get_profile_info(user_token):
+    # user_token = (await request.json())["user_token"]
     print(f"received request for profile of user {user_token}")
     await get_profile(user_token)
     response = process_profile()
     return jsonify(response)
 
+
 @app.route('/get_asset_info', methods=['GET', 'POST', 'OPTIONS'])
 async def get_assets_info():
-    #await request.get_data()  # Full raw body
+    print(await request.json)
+    # await request.get_data()  # Full raw body
     user_token = (await request.json)["user_token"]
     print(f"received request for assets of user {user_token}")
     await get_assets(user_token)
     response = process_assets()
     return jsonify(response)
 
+
 if __name__ == "__main__":
-    port = '8000'
-    app.run(port=port, host='0.0.0.0', debug=True, use_reloader=False)
+    port = '8080'
+    app.run(port=port, host='localhost', debug=True, use_reloader=False)

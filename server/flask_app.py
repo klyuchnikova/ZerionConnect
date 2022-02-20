@@ -1,4 +1,5 @@
 import asyncio
+
 import socketio
 from quart import Quart, request, jsonify
 
@@ -40,9 +41,9 @@ def process_assets():
         if asset_value is None:
             current_asset_price = None
         else:
-            current_asset_price = asset_value # * (10**asset.get("decimals", 0))
+            current_asset_price = asset_value
         assets[i] = {
-            "id" : asset_id,
+            "id": asset_id,
             "name": name,
             "icon_url": asset.get("icon_url", None),
             "relative_change_24h": relative_change_24h,
@@ -55,18 +56,18 @@ def process_assets():
 async def connect_socket():
     URI = 'wss://api-v4.zerion.io/'
     API_TOKEN = 'Demo.ukEVQp6L5vfgxcz4sBke7XvS873GMYHy'
-    await client.connect(url=f'{URI}/?api_token={API_TOKEN}',
+    await client.connect(url=f'{URI}/compound/?api_token={API_TOKEN}',
                          headers={'Origin': 'http://localhost:3000'},
                          namespaces=['/address'],
                          transports=['websocket'])
     print(f"Connection successful")
 
 
-@client.on('received address portfolio', namespace='/address')
+@client.on('received address info', namespace='/address')
 def received_address_portfolio(data):
     global ADDRESS_PORTFOLIO
     print('Address portfolio is received')
-    ADDRESS_PORTFOLIO = data['payload']['portfolio']
+    ADDRESS_PORTFOLIO = data['payload']['info']
 
 
 @client.on('received address assets', namespace='/address')
@@ -79,7 +80,7 @@ def received_address_assets(data):
 async def get_profile(token):
     global ADDRESS_PORTFOLIO
     await client.emit('subscribe', {
-        'scope': ['portfolio'],
+        'scope': ['info'],
         'payload': {
             'address': token,
             'currency': 'usd',
@@ -87,6 +88,7 @@ async def get_profile(token):
     }, namespace='/address')
     while ADDRESS_PORTFOLIO is None:
         await asyncio.sleep(0)
+
 
 async def get_assets(token):
     global ADDRESS_ASSETS
@@ -99,6 +101,7 @@ async def get_assets(token):
     }, namespace='/address')
     while ADDRESS_ASSETS is None:
         await asyncio.sleep(0)
+
 
 async def get_all(token):
     global ADDRESS_PORTFOLIO
@@ -143,14 +146,16 @@ async def get_profile_info():
     response = process_profile()
     return jsonify(response)
 
+
 @app.route('/get_asset_info', methods=['GET'])
 async def get_assets_info():
-    #await request.get_data()  # Full raw body
+    # await request.get_data()  # Full raw body
     user_token = (await request.form)["user_token"]
     print(f"received request for assets of user {user_token}")
     await get_assets(user_token)
     response = process_assets()
     return jsonify(response)
+
 
 if __name__ == "__main__":
     port = '8000'

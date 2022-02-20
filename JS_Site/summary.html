@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Rating</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" href="star.png" type="image/png">
+</head>
+<body>
+
+  <div class="main">
+    <div class="container">
+      <div class="row">
+        <div class="title"><h1>PROFILE SUMMARY</h1></div>
+      </div>
+      <div class="row">
+        <div class="profile_data"><h2>Общие данные профиля:</h2></div>
+      </div>
+      <hr></hr>
+      <div class="row">
+        <div class="absolute_change">
+          <h3 class=box_text>Absolute change:</h3>
+          <h3 class=absolute_change_val>0</h3>
+        </div>
+        <div class="assets_value">
+          <h3 class=box_text>Assets value:</h3>
+          <h3 class=assets_value_val>0</h3>
+        </div>
+        <div class="relative_change">
+          <h3 class=box_text>Relative change in 24 hours:</h3>
+          <h3 class=relative_change_val>0</h3>
+        </div>
+      </div>
+      <div class="row">
+        <div class="profile_data"><h2>Доступные ассеты:</h2></div>
+      </div>
+      <hr></hr>
+      <div class = "table">
+
+      </div>
+      <div class="row">
+        <div class="share_text"><h2>Поделиться:</h2></div>
+        <div class="ya-share2" data-curtain data-size="l" data-shape="round" data-lang="en" data-limit="4" data-services="vkontakte,facebook,telegram,twitter"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function get_profile() {
+      let profile = {
+        absolute_change_24h: 5,
+        assets_value: 10,
+        relative_change_24h: 15
+      };
+      return JSON.stringify(profile);
+    }
+
+    function get_assets() {
+      let assets = [
+          {
+            current_price: 2.61924e+21, 
+            icon_url: "https://token-icons.s3.amazonaws.com/eth.png", 
+            id: "eth", 
+            name: "Ethereum", 
+            quantity: "1438355422165197636", 
+            relative_change_24h: -6.056454216132855
+          },
+          {
+            current_price: 2.0673559605169452e+20, 
+            icon_url: "https://token-icons.s3.us-east-1.amazonaws.com/uniswap-v2.png", 
+            id: "0xfaad1072e259b5ed342d3f16277477b46d379abc", 
+            name: "Uniswap DEGEN/ETH Pool", 
+            quantity: "75360325816749596", 
+            relative_change_24h: -5.56441947356337
+          },
+          {
+            "current_price": 1030932.1070056229, 
+            "icon_url": "https://token-icons.s3.amazonaws.com/0xf013406a0b1d544238083df0b93ad0d2cbe0f65f.png", 
+            "id": "0xf013406a0b1d544238083df0b93ad0d2cbe0f65f", 
+            "name": "Fulcrum USDC iToken", 
+            "quantity": "245297", 
+            "relative_change_24h": -0.08419406772254535
+          }, 
+          {
+            "current_price": 3897429.1199999996, 
+            "icon_url": "https://s3.amazonaws.com/token-icons/0xf0ee6b27b759c9893ce4f094b49ad28fd15a23e4.png", 
+            "id": "0xf0ee6b27b759c9893ce4f094b49ad28fd15a23e4", 
+            "name": "Enigma", 
+            "quantity": "455618325", 
+            "relative_change_24h": 2.0350336689009625
+          }
+        ];
+        for (let i = 0; i < assets.length; ++i) {
+          assets[i] = JSON.stringify(assets[i]);
+        }
+        return assets;
+      }
+
+    var token = window.location.search.replace('?', '').substr(6);
+
+    var profile;
+    
+    var data = JSON.stringify({
+      "user_token": token
+    });
+
+    var xhr = new XMLHttpRequest();
+    xhr.withCredentials = true;
+
+    xhr.addEventListener("readystatechange", function() {
+      if(this.readyState === 4) {
+        console.log(this.responseText);
+      }
+    });
+
+    xhr.open("POST", "http://localhost:8080/get_profile_info/0x3807aa7f4217f785b8b2d9bb327a1b1beefcceca", false);
+    xhr.setRequestHeader("Content-Type", "application/json");
+
+    xhr.send(data);
+
+    xhr.onload = function() {
+      if (xhr.status != 200) {
+        alert(`Error ${xhr.status}: ${xhr.statusText}`);
+      } else {
+        console.log(xhr.responce)
+        profile = JSON.parse(xhr.responce);
+      }
+    };
+
+    //var profile = JSON.parse(get_profile());
+
+    var absolute_change_text = document.querySelector(".absolute_change_val");
+    absolute_change_text.innerHTML = profile.absolute_change_24h;
+    var assets_value_text = document.querySelector(".assets_value_val");
+    assets_value_text.innerHTML = profile.assets_value;
+    var relative_change_text = document.querySelector(".relative_change_val");
+    relative_change_text.innerHTML = profile.relative_change_24h;
+
+    var assets_list = get_assets();
+    
+    var parent = document.querySelector(".table");
+    for (let i = 0; i < assets_list.length; ++i) {
+      var assets = JSON.parse(assets_list[i]);
+      var asset_elem = document.createElement("div");
+      asset_elem.className = "asset";
+      var logo_in_asset_elem = document.createElement("img");
+      logo_in_asset_elem.className = "logo_in_asset";
+      logo_in_asset_elem.src = assets.icon_url;
+      asset_elem.appendChild(logo_in_asset_elem);
+
+      var idx_in_asset_elem = document.createElement("div");
+      idx_in_asset_elem.className = "idx_in_asset";
+      var idx_in_asset_text_elem = document.createElement("div");
+      idx_in_asset_text_elem.className = "idx_in_asset_text";
+      idx_in_asset_text_elem.innerHTML = assets.id;
+      idx_in_asset_elem.appendChild(idx_in_asset_text_elem);
+      asset_elem.appendChild(idx_in_asset_elem);
+
+      var name_in_asset_elem = document.createElement("h3");
+      name_in_asset_elem.className = "name_in_asset";
+      name_in_asset_elem.innerHTML = assets.name;
+      asset_elem.appendChild(name_in_asset_elem);
+
+      var quantity_in_asset_elem = document.createElement("h3");
+      quantity_in_asset_elem.className = "quantity_in_asset";
+      quantity_in_asset_elem.innerHTML = assets.quantity;
+      asset_elem.appendChild(quantity_in_asset_elem);
+
+      var relative_change_in_asset_elem = document.createElement("h3");
+      relative_change_in_asset_elem.className = "relative_change_in_asset";
+      relative_change_in_asset_elem.innerHTML = assets.relative_change_24h;
+      asset_elem.appendChild(relative_change_in_asset_elem);
+      parent.appendChild(asset_elem);
+    }
+
+  </script>
+
+  <script src="https://yastatic.net/share2/share.js"></script>
+
+</body>
+</html>
