@@ -34,7 +34,7 @@ async def connect_to_socket():
 
 
 @sio.on('received address portfolio', namespace='/address')
-def received_address_portfolio(data):
+def received_address_profile(data):
     global ADDRESS_PORTFOLIO
     print('Address portfolio is received')
     ADDRESS_PORTFOLIO = data['payload']['portfolio']

@@ -1,5 +1,4 @@
 import asyncio
-import threading
 import socketio
 from quart import Quart, request, jsonify
 
