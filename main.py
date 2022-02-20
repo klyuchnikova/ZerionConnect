@@ -135,7 +135,7 @@ async def get_all_info():
     return jsonify({'portfolio': profile, 'assets': assets})
 
 
-@app.route('/get_profile_info', methods=['GET', 'POST'])
+@app.route('/get_profile_info', methods=['GET', 'POST', 'OPTIONS'])
 async def get_profile_info():
     user_token = (await request.json)["user_token"]
     print(f"received request for profile of user {user_token}")
@@ -143,7 +143,7 @@ async def get_profile_info():
     response = process_profile()
     return jsonify(response)
 
-@app.route('/get_asset_info', methods=['GET', 'POST'])
+@app.route('/get_asset_info', methods=['GET', 'POST', 'OPTIONS'])
 async def get_assets_info():
     #await request.get_data()  # Full raw body
     user_token = (await request.json)["user_token"]
