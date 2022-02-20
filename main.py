@@ -1,24 +1,23 @@
 import asyncio
 import socketio
-from flask import Flask, request, jsonify
+from quart import Quart, request, jsonify
 
-global ADDRESS_PORTFOLIO, ADDRESS_ASSETS
+global ADDRESS_PROFILE, ADDRESS_ASSETS
 ADDRESS_PORTFOLIO = None
 ADDRESS_ASSETS = None
 
-loop = asyncio.get_event_loop()
 client = socketio.AsyncClient()
 
-app = Flask(__name__)
+app = Quart(__name__)
 
 
-def process_portfolio():
+def process_profile():
     global ADDRESS_PORTFOLIO
-    portfolio = dict.fromkeys(["assets_value", "absolute_change_24h", "relative_change_24h"])
-    for key in portfolio.keys():
-        portfolio[key] = ADDRESS_PORTFOLIO.get(key, None)
+    profile = dict.fromkeys(["assets_value", "absolute_change_24h", "relative_change_24h"])
+    for key in profile.keys():
+        profile[key] = ADDRESS_PORTFOLIO.get(key, None)
     ADDRESS_PORTFOLIO = None
-    return portfolio
+    return profile
 
 
 def process_assets():
@@ -76,19 +75,29 @@ def received_address_assets(data):
     ADDRESS_ASSETS = data['payload']['assets']
 
 
-async def get_portfolio(token):
+async def get_profile(token):
     global ADDRESS_PORTFOLIO
     await client.emit('subscribe', {
         'scope': ['portfolio'],
         'payload': {
             'address': token,
             'currency': 'usd',
-            'portfolio_fields': ["assets_value", "absolute_change_24h", "relative_change_24h"]
         }
     }, namespace='/address')
     while ADDRESS_PORTFOLIO is None:
         await asyncio.sleep(0)
 
+async def get_assets(token):
+    global ADDRESS_ASSETS
+    await client.emit('subscribe', {
+        'scope': ['assets'],
+        'payload': {
+            'address': token,
+            'currency': 'usd',
+        }
+    }, namespace='/address')
+    while ADDRESS_ASSETS is None:
+        await asyncio.sleep(0)
 
 async def get_all(token):
     global ADDRESS_PORTFOLIO
@@ -98,8 +107,7 @@ async def get_all(token):
         'scope': ['portfolio', 'assets'],
         'payload': {
             'address': token,
-            'currency': 'usd',
-            'portfolio_fields': ["assets_value", "absolute_change_24h", "relative_change_24h"]
+            'currency': 'usd'
         }
     }, namespace='/address')
     while ADDRESS_PORTFOLIO is None or ADDRESS_ASSETS is None:
@@ -110,42 +118,39 @@ async def get_all(token):
 
 
 @app.route("/")
-def connect():
+async def connect():
     # perform multiple async requests concurrently
-    loop.run_until_complete(connect_socket())
+    await connect_socket()
     return "Connected"
 
 
 @app.route('/get_all_info', methods=['GET'])
-def get_all_info():
-    user_token = request.form.get('user_token')
-    loop.run_until_complete(
-        get_all(user_token)
-    )
-    profile = process_portfolio()
+async def get_all_info():
+    user_token = (await request.form)["user_token"]
+    print(f"received request for all of user {user_token}")
+    await get_profile(user_token)
+    profile = process_profile()
     assets = process_assets()
-    return jsonify({'profile': profile, 'assets': assets})
+    return jsonify({'portfolio': profile, 'assets': assets})
 
 
-"""
 @app.route('/get_profile_info', methods=['GET'])
-def get_profile_info():
-    user_token = request.form.get('user_token')
-    loop.run_until_complete(
-        get_assets(user_token)
-    )
-    response = process_assets()
+async def get_profile_info():
+    user_token = (await request.form)["user_token"]
+    print(f"received request for profile of user {user_token}")
+    await get_profile(user_token)
+    response = process_profile()
     return jsonify(response)
 
 @app.route('/get_asset_info', methods=['GET'])
 async def get_assets_info():
-    user_token = request.form.get('user_token')
-    loop.run_until_complete(
-        get_portfolio(user_token)
-    )
-    response = process_portfolio()
+    #await request.get_data()  # Full raw body
+    user_token = (await request.form)["user_token"]
+    print(f"received request for assets of user {user_token}")
+    await get_assets(user_token)
+    response = process_assets()
     return jsonify(response)
-"""
+
 if __name__ == "__main__":
     port = '8000'
     app.run(port=port, debug=True, use_reloader=False)
