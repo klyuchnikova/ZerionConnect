@@ -154,4 +154,4 @@ async def get_assets_info():
 
 if __name__ == "__main__":
     port = '8000'
-    app.run(port=port, debug=True, use_reloader=False)
+    app.run(port=port, host='0.0.0.0', debug=True, use_reloader=False)
