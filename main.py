@@ -1,115 +1,151 @@
 import asyncio
 import socketio
+from flask import Flask, request, jsonify
 
-URI = 'wss://api-v4.zerion.io/'
-API_TOKEN = 'Demo.ukEVQp6L5vfgxcz4sBke7XvS873GMYHy'
-ORIGIN = 'http://localhost:3000'
-
-sio = socketio.AsyncClient(logger=False, engineio_logger=False)
-
-CONNECTED_TO_SOCKET = False
-
+global ADDRESS_PORTFOLIO, ADDRESS_ASSETS
 ADDRESS_PORTFOLIO = None
 ADDRESS_ASSETS = None
-ADDRESS_DEPOSITS = None
-ADDRESS_LOANS = None
-ADDRESS_STAKED_ASSETS = None
-ADDRESS_LOCKED_ASSETS = None
+
+loop = asyncio.get_event_loop()
+client = socketio.AsyncClient()
+
+app = Flask(__name__)
 
 
-@sio.event(namespace='/address')
-async def connect():
-    global CONNECTED_TO_SOCKET
-    print('Connected to /address namespace!')
-    CONNECTED_TO_SOCKET = True
+def process_portfolio():
+    global ADDRESS_PORTFOLIO
+    portfolio = dict.fromkeys(["assets_value", "absolute_change_24h", "relative_change_24h"])
+    for key in portfolio.keys():
+        portfolio[key] = ADDRESS_PORTFOLIO.get(key, None)
+    ADDRESS_PORTFOLIO = None
+    return portfolio
 
 
-async def connect_to_socket():
-    await sio.connect(
-        f'{URI}/?api_token={API_TOKEN}',
-        headers={'Origin': ORIGIN},
-        namespaces=['/address'],
-        transports=['websocket']
-    )
+def process_assets():
+    global ADDRESS_ASSETS
+    assets = dict()
+    for asset_id, asset_info in ADDRESS_ASSETS.items():
+        asset = asset_info.get('asset', dict())
+        quantity = asset_info.get("quantity", None)
+
+        if type(asset) != dict:
+            asset = dict()
+        name = asset.get("name", None)
+        try:
+            relative_change_24h = asset.get("price", dict()).get("relative_change_24h", None)
+            asset_value = asset.get("price", dict()).get("value", None)
+        except:
+            relative_change_24h = None
+            asset_value = None
+
+        if asset_value is None:
+            current_asset_price = None
+        else:
+            current_asset_price = asset_value * (10**asset.get("decimals", 0))
+        assets[asset_id] = {
+            "name": name,
+            "icon_url": asset.get("icon_url", None),
+            "relative_change_24h": relative_change_24h,
+            "current_price": current_asset_price,
+            "quantity": quantity}
+    ADDRESS_ASSETS = None
+    return assets
 
 
-@sio.on('received address portfolio', namespace='/address')
+async def connect_socket():
+    URI = 'wss://api-v4.zerion.io/'
+    API_TOKEN = 'Demo.ukEVQp6L5vfgxcz4sBke7XvS873GMYHy'
+    await client.connect(url=f'{URI}/?api_token={API_TOKEN}',
+                         headers={'Origin': 'http://localhost:3000'},
+                         namespaces=['/address'],
+                         transports=['websocket'])
+    print(f"Connection successful")
+
+
+@client.on('received address portfolio', namespace='/address')
 def received_address_portfolio(data):
     global ADDRESS_PORTFOLIO
     print('Address portfolio is received')
     ADDRESS_PORTFOLIO = data['payload']['portfolio']
 
-@sio.on('received address assets', namespace='/address')
+
+@client.on('received address assets', namespace='/address')
 def received_address_assets(data):
     global ADDRESS_ASSETS
     print('Address assets are received')
     ADDRESS_ASSETS = data['payload']['assets']
 
-@sio.on('received address deposits', namespace='/address')
-def received_address_assets(data):
-    global ADDRESS_DEPOSITS
-    print('Address deposits are received')
-    ADDRESS_DEPOSITS = data['payload']['deposits']
 
-@sio.on('received address loans', namespace='/address')
-def received_address_assets(data):
-    global ADDRESS_LOANS
-    print('Address loans are received')
-    ADDRESS_LOANS = data['payload']['loans']
-
-@sio.on('received address staked-assets', namespace='/address')
-def received_address_assets(data):
-    global ADDRESS_STAKED_ASSETS
-    print('Address staked assets are received')
-    ADDRESS_STAKED_ASSETS = data['payload']['staked-assets']
-
-@sio.on('received address locked-assets', namespace='/address')
-def received_address_assets(data):
-    global ADDRESS_LOCKED_ASSETS
-    print('Address locked assets are received')
-    ADDRESS_LOCKED_ASSETS = data['payload']['locked-assets']
-
-def results_ready() -> bool:
-    requested_entities = (
-        ADDRESS_PORTFOLIO, ADDRESS_ASSETS, ADDRESS_DEPOSITS,
-        ADDRESS_LOANS, ADDRESS_STAKED_ASSETS, ADDRESS_LOCKED_ASSETS
-    )
-    return not any(x is None for x in requested_entities)
-
-async def main(address: str):
-    # Initiate the connection with the websocket
-    await connect_to_socket()
-
-    # Wait until the connection is established
-    while not CONNECTED_TO_SOCKET:
-        await asyncio.sleep(0)
-
-    # Request address information
-    await sio.emit('subscribe', {
-        'scope': ['portfolio', 'assets', 'deposits', 'loans', 'staked-assets', 'locked-assets'],
+async def get_portfolio(token):
+    global ADDRESS_PORTFOLIO
+    await client.emit('subscribe', {
+        'scope': ['portfolio'],
         'payload': {
-            'address': address,
+            'address': token,
             'currency': 'usd',
-            'portfolio_fields': 'all'
+            'portfolio_fields': ["assets_value", "absolute_change_24h", "relative_change_24h"]
         }
     }, namespace='/address')
-
-    # Wait until all information about the address is received
-    while not results_ready():
+    while ADDRESS_PORTFOLIO is None:
         await asyncio.sleep(0)
 
-    print('------')
-    print(
-        f'Address {address} has:',
-        f' - {len(ADDRESS_ASSETS)} assets worth of ${ADDRESS_PORTFOLIO["assets_value"]}',
-        f' - {len(ADDRESS_DEPOSITS)} deposits worth of ${ADDRESS_PORTFOLIO["deposited_value"]}',
-        f' - {len(ADDRESS_LOANS)} loans worth of ${ADDRESS_PORTFOLIO["borrowed_value"]}',
-        f' - {len(ADDRESS_STAKED_ASSETS)} staked assets worth of ${ADDRESS_PORTFOLIO["staked_value"]}',
-        f' - {len(ADDRESS_LOCKED_ASSETS)} locked assets worth of ${ADDRESS_PORTFOLIO["locked_value"]}',
-        sep='\n',
-    )
 
-if __name__ == '__main__':
-    test_address = '0x7e5ce10826ee167de897d262fcc9976f609ecd2b'
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(main(test_address))
+async def get_all(token):
+    global ADDRESS_PORTFOLIO
+    global ADDRESS_ASSETS
+
+    await client.emit('subscribe', {
+        'scope': ['portfolio', 'assets'],
+        'payload': {
+            'address': token,
+            'currency': 'usd',
+            'portfolio_fields': ["assets_value", "absolute_change_24h", "relative_change_24h"]
+        }
+    }, namespace='/address')
+    while ADDRESS_PORTFOLIO is None or ADDRESS_ASSETS is None:
+        await asyncio.sleep(0)
+
+    while ADDRESS_ASSETS is None:
+        await asyncio.sleep(0)
+
+
+@app.route("/")
+def connect():
+    # perform multiple async requests concurrently
+    loop.run_until_complete(connect_socket())
+    return "Connected"
+
+
+@app.route('/get_all_info', methods=['GET'])
+def get_all_info():
+    user_token = request.form.get('user_token')
+    loop.run_until_complete(
+        get_all(user_token)
+    )
+    profile = process_portfolio()
+    assets = process_assets()
+    return jsonify({'profile': profile, 'assets': assets})
+
+
+"""
+@app.route('/get_profile_info', methods=['GET'])
+def get_profile_info():
+    user_token = request.form.get('user_token')
+    loop.run_until_complete(
+        get_assets(user_token)
+    )
+    response = process_assets()
+    return jsonify(response)
+
+@app.route('/get_asset_info', methods=['GET'])
+async def get_assets_info():
+    user_token = request.form.get('user_token')
+    loop.run_until_complete(
+        get_portfolio(user_token)
+    )
+    response = process_portfolio()
+    return jsonify(response)
+"""
+if __name__ == "__main__":
+    port = '8000'
+    app.run(port=port, debug=True, use_reloader=False)
