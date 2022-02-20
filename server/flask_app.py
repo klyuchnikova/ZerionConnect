@@ -10,6 +10,7 @@ ADDRESS_ASSETS = None
 
 loop = asyncio.get_event_loop()
 client = socketio.AsyncClient()
+
 app = Flask(__name__)
 
 def process_portfolio():
@@ -57,6 +58,10 @@ async def connect_socket():
                                        headers={'Origin': 'http://localhost:3000'},
                                        namespaces=['/address'],
                                        transports=['websocket'])
+    """await client_2.connect(url=f'{URI}/?api_token={API_TOKEN}',
+                         headers={'Origin': 'http://localhost:3000'},
+                         namespaces=['/second_address'],
+                         transports=['websocket'])"""
     print(f"Connection successful")
 
 @client.on('received address portfolio', namespace='/address')
@@ -65,13 +70,11 @@ def received_address_portfolio(data):
     print('Address portfolio is received')
     ADDRESS_PORTFOLIO = data['payload']['portfolio']
 
-"""
 @client.on('received address assets', namespace='/address')
 def received_address_assets(data):
     global ADDRESS_ASSETS
     print('Address assets are received')
     ADDRESS_ASSETS = data['payload']['assets']
-"""
 
 async def get_portfolio(token):
     global ADDRESS_PORTFOLIO
@@ -93,6 +96,7 @@ async def get_assets(token):
         'payload': {
             'address': token,
             'currency': 'usd',
+            'assets_fields' : 'all'
         }
     }, namespace='/address')
     while ADDRESS_ASSETS is None:
@@ -101,27 +105,26 @@ async def get_assets(token):
 @app.route("/")
 def connect():
     # perform multiple async requests concurrently
-    responses = loop.run_until_complete(connect_socket())
+    loop.run_until_complete(connect_socket())
     return "Connected"
 
 @app.route('/get_profile_info', methods=['GET'])
 def get_profile_info():
     user_token = request.form.get('user_token')
-    responses = loop.run_until_complete(
-        get_portfolio(user_token)
+    loop.run_until_complete(
+        get_assets(user_token)
     )
-    response = process_portfolio()
+    response = process_assets()
     return jsonify(response)
-"""
+
 @app.route('/get_asset_info', methods=['GET'])
 async def get_assets_info():
     user_token = request.form.get('user_token')
-    responses = loop.run_until_complete(
+    loop.run_until_complete(
         get_portfolio(user_token)
     )
     response = process_portfolio()
     return jsonify(response)
-"""
 
 if __name__ == "__main__":
     app.run(port='8000', debug=False, use_reloader=False)
