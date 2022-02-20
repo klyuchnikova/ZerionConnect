@@ -22,8 +22,8 @@ def process_profile():
 
 def process_assets():
     global ADDRESS_ASSETS
-    assets = dict()
-    for asset_id, asset_info in ADDRESS_ASSETS.items():
+    assets = [dict() for i in range(len(ADDRESS_ASSETS.keys()))]
+    for i, (asset_id, asset_info) in enumerate(ADDRESS_ASSETS.items()):
         asset = asset_info.get('asset', dict())
         quantity = asset_info.get("quantity", None)
 
@@ -41,7 +41,8 @@ def process_assets():
             current_asset_price = None
         else:
             current_asset_price = asset_value * (10**asset.get("decimals", 0))
-        assets[asset_id] = {
+        assets[i] = {
+            "id" : asset_id,
             "name": name,
             "icon_url": asset.get("icon_url", None),
             "relative_change_24h": relative_change_24h,
