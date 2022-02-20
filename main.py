@@ -146,7 +146,7 @@ async def get_profile_info():
 @app.route('/get_asset_info', methods=['GET'])
 async def get_assets_info():
     #await request.get_data()  # Full raw body
-    user_token = (await request.form)["user_token"]
+    user_token = (await request.json)["user_token"]
     print(f"received request for assets of user {user_token}")
     await get_assets(user_token)
     response = process_assets()
