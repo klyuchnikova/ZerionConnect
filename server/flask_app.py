@@ -2,7 +2,6 @@ import asyncio
 
 import socketio
 from flask import Flask, request, jsonify
-from copy import deepcopy
 
 global ADDRESS_PORTFOLIO, ADDRESS_ASSETS
 ADDRESS_PORTFOLIO = None
@@ -13,6 +12,7 @@ client = socketio.AsyncClient()
 
 app = Flask(__name__)
 
+
 def process_portfolio():
     global ADDRESS_PORTFOLIO
     portfolio = dict.fromkeys(["assets_value", "absolute_change_24h", "relative_change_24h"])
@@ -20,6 +20,7 @@ def process_portfolio():
         portfolio[key] = ADDRESS_PORTFOLIO.get(key, None)
     ADDRESS_PORTFOLIO = None
     return portfolio
+
 
 def process_assets():
     global ADDRESS_ASSETS
@@ -51,18 +52,16 @@ def process_assets():
     ADDRESS_ASSETS = None
     return assets
 
+
 async def connect_socket():
     URI = 'wss://api-v4.zerion.io/'
     API_TOKEN = 'Demo.ukEVQp6L5vfgxcz4sBke7XvS873GMYHy'
     await client.connect(url=f'{URI}/?api_token={API_TOKEN}',
-                                       headers={'Origin': 'http://localhost:3000'},
-                                       namespaces=['/address'],
-                                       transports=['websocket'])
-    """await client_2.connect(url=f'{URI}/?api_token={API_TOKEN}',
                          headers={'Origin': 'http://localhost:3000'},
-                         namespaces=['/second_address'],
-                         transports=['websocket'])"""
+                         namespaces=['/address'],
+                         transports=['websocket'])
     print(f"Connection successful")
+
 
 @client.on('received address portfolio', namespace='/address')
 def received_address_portfolio(data):
@@ -70,11 +69,13 @@ def received_address_portfolio(data):
     print('Address portfolio is received')
     ADDRESS_PORTFOLIO = data['payload']['portfolio']
 
+
 @client.on('received address assets', namespace='/address')
 def received_address_assets(data):
     global ADDRESS_ASSETS
     print('Address assets are received')
     ADDRESS_ASSETS = data['payload']['assets']
+
 
 async def get_portfolio(token):
     global ADDRESS_PORTFOLIO
@@ -83,24 +84,31 @@ async def get_portfolio(token):
         'payload': {
             'address': token,
             'currency': 'usd',
-            'portfolio_fields': 'all'
+            'portfolio_fields': ["assets_value", "absolute_change_24h", "relative_change_24h"]
         }
     }, namespace='/address')
     while ADDRESS_PORTFOLIO is None:
         await asyncio.sleep(0)
 
-async def get_assets(token):
+
+async def get_all(token):
+    global ADDRESS_PORTFOLIO
     global ADDRESS_ASSETS
+
     await client.emit('subscribe', {
-        'scope': ['assets'],
+        'scope': ['portfolio', 'assets'],
         'payload': {
             'address': token,
             'currency': 'usd',
-            'assets_fields' : 'all'
+            'portfolio_fields': ["assets_value", "absolute_change_24h", "relative_change_24h"]
         }
     }, namespace='/address')
+    while ADDRESS_PORTFOLIO is None or ADDRESS_ASSETS is None:
+        await asyncio.sleep(0)
+
     while ADDRESS_ASSETS is None:
         await asyncio.sleep(0)
+
 
 @app.route("/")
 def connect():
@@ -108,6 +116,19 @@ def connect():
     loop.run_until_complete(connect_socket())
     return "Connected"
 
+
+@app.route('/get_all_info', methods=['GET'])
+def get_all_info():
+    user_token = request.form.get('user_token')
+    loop.run_until_complete(
+        get_all(user_token)
+    )
+    profile = process_portfolio()
+    assets = process_assets()
+    return jsonify({'profile': profile, 'assets': assets})
+
+
+"""
 @app.route('/get_profile_info', methods=['GET'])
 def get_profile_info():
     user_token = request.form.get('user_token')
@@ -125,6 +146,6 @@ async def get_assets_info():
     )
     response = process_portfolio()
     return jsonify(response)
-
+"""
 if __name__ == "__main__":
     app.run(port='8000', debug=False, use_reloader=False)
