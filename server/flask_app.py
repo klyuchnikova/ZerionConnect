@@ -1,60 +1,77 @@
-"""import asyncio
-from flask import Flask, request, jsonify
-
-global zerion_client
-
-loop = asyncio.get_event_loop()
-app = Flask(__name__)
-
-async def abar(user_token):
-    await asyncio.sleep(1)
-    print(1)
-    await asyncio.sleep(1)
-    print(2)
-    await asyncio.sleep(3)
-    print(3)
-    print(f"token : {user_token}")
-
-@app.route('/get_profile_info', methods=['GET'])
-async def get_profile_info():
-    try:
-        answer = await zerion_client.get_profile_info(user_token)
-        print(f"flask sending profile info")
-        return jsonify(answer)
-    except:
-        return jsonify({'user_token': user_token, 'ERROR': 'could\'t connect to Zerion'})
-
-if __name__ == "__main__":
-    app.run(port='8000', debug = False, use_reloader=False)
-"""
 import asyncio
 
 import socketio
 from flask import Flask, request, jsonify
 from copy import deepcopy
 
+global ADDRESS_PORTFOLIO, ADDRESS_ASSETS
+ADDRESS_PORTFOLIO = None
+ADDRESS_ASSETS = None
+
 loop = asyncio.get_event_loop()
 client = socketio.AsyncClient()
 app = Flask(__name__)
 
+def process_portfolio():
+    global ADDRESS_PORTFOLIO
+    portfolio = dict.fromkeys(["assets_value", "absolute_change_24h", "relative_change_24h"])
+    for key in portfolio.keys():
+        portfolio[key] = ADDRESS_PORTFOLIO.get(key, None)
+    ADDRESS_PORTFOLIO = None
+    return portfolio
 
-async def fetch():
+def process_assets():
+    global ADDRESS_ASSETS
+    assets = dict()
+    for asset_id, asset_info in ADDRESS_ASSETS.items():
+        asset = asset_info.get('asset', dict())
+        quantity = asset_info.get("quantity", None)
+
+        if type(asset) != dict:
+            asset = dict()
+        name = asset.get("name", None)
+        try:
+            relative_change_24h = asset.get("price", dict()).get("relative_change_24h", None)
+            asset_value = asset.get("price", dict()).get("value", None)
+        except:
+            relative_change_24h = None
+            asset_value = None
+
+        if asset_value is None:
+            current_asset_price = None
+        else:
+            current_asset_price = asset_value * (10**asset.get("decimals", 0))
+        assets[asset_id] = {
+            "name": name,
+            "icon_url": asset.get("icon_url", None),
+            "relative_change_24h": relative_change_24h,
+            "current_price": current_asset_price,
+            "quantity": quantity}
+    ADDRESS_ASSETS = None
+    return assets
+
+async def connect_socket():
     URI = 'wss://api-v4.zerion.io/'
     API_TOKEN = 'Demo.ukEVQp6L5vfgxcz4sBke7XvS873GMYHy'
     await client.connect(url=f'{URI}/?api_token={API_TOKEN}',
                                        headers={'Origin': 'http://localhost:3000'},
                                        namespaces=['/address'],
                                        transports=['websocket'])
-    print(f"WTF???? IT WORKED????????????")
-
-global ADDRESS_PORTFOLIO
-ADDRESS_PORTFOLIO = None
+    print(f"Connection successful")
 
 @client.on('received address portfolio', namespace='/address')
 def received_address_portfolio(data):
     global ADDRESS_PORTFOLIO
     print('Address portfolio is received')
     ADDRESS_PORTFOLIO = data['payload']['portfolio']
+
+"""
+@client.on('received address assets', namespace='/address')
+def received_address_assets(data):
+    global ADDRESS_ASSETS
+    print('Address assets are received')
+    ADDRESS_ASSETS = data['payload']['assets']
+"""
 
 async def get_portfolio(token):
     global ADDRESS_PORTFOLIO
@@ -69,30 +86,42 @@ async def get_portfolio(token):
     while ADDRESS_PORTFOLIO is None:
         await asyncio.sleep(0)
 
-
-def fight(responses):
-    return "Why can't we all just get along?"
-
+async def get_assets(token):
+    global ADDRESS_ASSETS
+    await client.emit('subscribe', {
+        'scope': ['assets'],
+        'payload': {
+            'address': token,
+            'currency': 'usd',
+        }
+    }, namespace='/address')
+    while ADDRESS_ASSETS is None:
+        await asyncio.sleep(0)
 
 @app.route("/")
-def index():
+def connect():
     # perform multiple async requests concurrently
-    responses = loop.run_until_complete(
-        fetch()
-    )
-    return fight(responses)
+    responses = loop.run_until_complete(connect_socket())
+    return "Connected"
 
 @app.route('/get_profile_info', methods=['GET'])
 def get_profile_info():
-    global ADDRESS_PORTFOLIO
     user_token = request.form.get('user_token')
     responses = loop.run_until_complete(
         get_portfolio(user_token)
     )
-    response = deepcopy(ADDRESS_PORTFOLIO)
-    ADDRESS_PORTFOLIO = None
+    response = process_portfolio()
     return jsonify(response)
-
+"""
+@app.route('/get_asset_info', methods=['GET'])
+async def get_assets_info():
+    user_token = request.form.get('user_token')
+    responses = loop.run_until_complete(
+        get_portfolio(user_token)
+    )
+    response = process_portfolio()
+    return jsonify(response)
+"""
 
 if __name__ == "__main__":
     app.run(port='8000', debug=False, use_reloader=False)
