@@ -40,7 +40,7 @@ def process_assets():
         if asset_value is None:
             current_asset_price = None
         else:
-            current_asset_price = asset_value * (10**asset.get("decimals", 0))
+            current_asset_price = asset_value # * (10**asset.get("decimals", 0))
         assets[i] = {
             "id" : asset_id,
             "name": name,
