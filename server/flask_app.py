@@ -90,6 +90,19 @@ async def get_portfolio(token):
     while ADDRESS_PORTFOLIO is None:
         await asyncio.sleep(0)
 
+async def get_assets(token):
+    global ADDRESS_ASSETS
+
+    await client.emit('subscribe', {
+        'scope': ['assets'],
+        'payload': {
+            'address': token,
+            'currency': 'usd',
+        }
+    }, namespace='/address')
+
+    while ADDRESS_ASSETS is None:
+        await asyncio.sleep(0)
 
 async def get_all(token):
     global ADDRESS_PORTFOLIO
@@ -99,8 +112,7 @@ async def get_all(token):
         'scope': ['portfolio', 'assets'],
         'payload': {
             'address': token,
-            'currency': 'usd',
-            'portfolio_fields': ["assets_value", "absolute_change_24h", "relative_change_24h"]
+            'currency': 'usd'
         }
     }, namespace='/address')
     while ADDRESS_PORTFOLIO is None or ADDRESS_ASSETS is None:
@@ -128,26 +140,20 @@ def get_all_info():
     return jsonify({'profile': profile, 'assets': assets})
 
 
-"""
 @app.route('/get_profile_info', methods=['GET'])
 def get_profile_info():
     user_token = request.form.get('user_token')
-    loop.run_until_complete(
-        get_assets(user_token)
-    )
-    response = process_assets()
+    loop.run_until_complete(get_portfolio(user_token))
+    response = process_portfolio()
     return jsonify(response)
 
 @app.route('/get_asset_info', methods=['GET'])
 async def get_assets_info():
     user_token = request.form.get('user_token')
-    loop.run_until_complete(
-        get_portfolio(user_token)
-    )
-    response = process_portfolio()
+    loop.run_until_complete(get_assets(user_token))
+    response = process_assets()
     return jsonify(response)
-"""
+
 if __name__ == "__main__":
     port = '8000'
-    threading.Thread(target=lambda: app.run(port=port, debug=True, use_reloader=False)).start()
-    threading.Thread(target=lambda: loop.run_until_complete(connect_socket()))
+    app.run(port=port, debug=True, use_reloader=False)
