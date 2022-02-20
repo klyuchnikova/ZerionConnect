@@ -40,7 +40,7 @@ def process_assets():
         if asset_value is None:
             current_asset_price = None
         else:
-            current_asset_price = asset_value # * (10**asset.get("decimals", 0))
+            current_asset_price = asset_value
         assets[i] = {
             "id" : asset_id,
             "name": name,
@@ -127,7 +127,7 @@ async def connect():
 
 @app.route('/get_all_info', methods=['GET'])
 async def get_all_info():
-    user_token = (await request.form)["user_token"]
+    user_token = (await request.json)["user_token"]
     print(f"received request for all of user {user_token}")
     await get_profile(user_token)
     profile = process_profile()
@@ -137,7 +137,7 @@ async def get_all_info():
 
 @app.route('/get_profile_info', methods=['GET'])
 async def get_profile_info():
-    user_token = (await request.form)["user_token"]
+    user_token = (await request.json)["user_token"]
     print(f"received request for profile of user {user_token}")
     await get_profile(user_token)
     response = process_profile()
