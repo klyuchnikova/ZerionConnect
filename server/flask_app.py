@@ -1,5 +1,5 @@
 import asyncio
-
+import threading
 import socketio
 from flask import Flask, request, jsonify
 
@@ -148,4 +148,6 @@ async def get_assets_info():
     return jsonify(response)
 """
 if __name__ == "__main__":
-    app.run(port='8000', debug=False, use_reloader=False)
+    port = '8000'
+    threading.Thread(target=lambda: app.run(port=port, debug=True, use_reloader=False)).start()
+    threading.Thread(target=lambda: loop.run_until_complete(connect_socket()))
