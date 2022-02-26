@@ -127,7 +127,7 @@ async def connect():
     await connect_socket()
     return "Connected"
 
-
+"""
 @app.route('/get_all_info', methods=['GET'])
 async def get_all_info():
     user_token = (await request.json)["user_token"]
@@ -136,9 +136,9 @@ async def get_all_info():
     profile = process_profile()
     assets = process_assets()
     return jsonify({'portfolio': profile, 'assets': assets})
+"""
 
-
-@app.route('/get_profile_info/<user_token>', methods=['GET', 'POST', 'OPTIONS'])
+@app.route('/profile/{user_token}', methods=['GET', 'POST', 'OPTIONS'])
 async def get_profile_info(user_token):
     # user_token = (await request.json())["user_token"]
     print(f"received request for profile of user {user_token}")
@@ -147,7 +147,7 @@ async def get_profile_info(user_token):
     return jsonify(response)
 
 
-@app.route('/get_asset_info', methods=['GET', 'POST', 'OPTIONS'])
+@app.route('/assets/{user_token}', methods=['GET', 'POST', 'OPTIONS'])
 async def get_assets_info():
     print(await request.json)
     # await request.get_data()  # Full raw body
