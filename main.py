@@ -137,10 +137,16 @@ async def get_profile_info(user_token):
     response = process_profile()
     return jsonify(response)
 
+@app.route('/assets/<user_token>', methods=['GET'])
+async def get_assets_info(user_token):
+    print(f"received request for assets of user {user_token}")
+    await request_assets(user_token)
+    response = process_assets()
+    return jsonify(response)
 
 @app.route('/subscribe/profile/<user_token>', methods=['GET'])
 async def subscribe_profile_info(user_token):
-    print(f"received request for profile of user {user_token}")
+    print(f"received subscribe request for profile of user {user_token}")
     await request_profile(user_token, 'subscribe')
     response = process_profile()
     return jsonify(response)
@@ -148,7 +154,7 @@ async def subscribe_profile_info(user_token):
 
 @app.route('/subscribe/assets/<user_token>', methods=['GET'])
 async def subscribe_assets_info(user_token):
-    print(f"received request for assets of user {user_token}")
+    print(f"received subscribe request for assets of user {user_token}")
     await request_assets(user_token, 'subscribe')
     response = process_assets()
     return jsonify(response)
