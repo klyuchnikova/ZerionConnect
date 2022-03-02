@@ -1,7 +1,7 @@
 import asyncio
 
 import socketio
-from quart import Quart, request, jsonify
+from quart import Quart, jsonify
 
 global ADDRESS_PROFILE, ADDRESS_ASSETS
 ADDRESS_PORTFOLIO = None
@@ -77,9 +77,11 @@ def received_address_assets(data):
     ADDRESS_ASSETS = data['payload']['assets']
 
 
-async def get_profile(token):
+async def request_profile(token, action='get'):
+    if action not in ['get', 'subscribe', 'unsubscribed']:
+        return Exception(f"Bad request to server: there's no such action as {action}")
     global ADDRESS_PORTFOLIO
-    await client.emit('subscribe', {
+    await client.emit(action, {
         'scope': ['portfolio'],
         'payload': {
             'address': token,
@@ -90,9 +92,9 @@ async def get_profile(token):
         await asyncio.sleep(0)
 
 
-async def get_assets(token):
+async def request_assets(token, action='get'):
     global ADDRESS_ASSETS
-    await client.emit('subscribe', {
+    await client.emit(action, {
         'scope': ['assets'],
         'payload': {
             'address': token,
@@ -127,18 +129,27 @@ async def connect():
     await connect_socket()
     return "Connected"
 
+
 @app.route('/profile/<user_token>', methods=['GET'])
 async def get_profile_info(user_token):
     print(f"received request for profile of user {user_token}")
-    await get_profile(user_token)
+    await request_profile(user_token)
     response = process_profile()
     return jsonify(response)
 
 
-@app.route('/assets/<user_token>', methods=['GET'])
-async def get_assets_info(user_token):
+@app.route('/subscribe/profile/<user_token>', methods=['GET'])
+async def subscribe_profile_info(user_token):
+    print(f"received request for profile of user {user_token}")
+    await request_profile(user_token, 'subscribe')
+    response = process_profile()
+    return jsonify(response)
+
+
+@app.route('/subscribe/assets/<user_token>', methods=['GET'])
+async def subscribe_assets_info(user_token):
     print(f"received request for assets of user {user_token}")
-    await get_assets(user_token)
+    await request_assets(user_token, 'subscribe')
     response = process_assets()
     return jsonify(response)
 
