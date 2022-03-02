@@ -127,29 +127,16 @@ async def connect():
     await connect_socket()
     return "Connected"
 
-"""
-@app.route('/get_all_info', methods=['GET'])
-async def get_all_info():
-    user_token = (await request.json)["user_token"]
-    print(f"received request for all of user {user_token}")
-    await get_profile(user_token)
-    profile = process_profile()
-    assets = process_assets()
-    return jsonify({'portfolio': profile, 'assets': assets})
-"""
-
-@app.route('/profile/{user_token}', methods=['GET', 'POST', 'OPTIONS'])
+@app.route('/profile/<user_token>', methods=['GET'])
 async def get_profile_info(user_token):
-    # user_token = (await request.json())["user_token"]
     print(f"received request for profile of user {user_token}")
     await get_profile(user_token)
     response = process_profile()
     return jsonify(response)
 
 
-@app.route('/assets/{user_token}', methods=['GET', 'POST', 'OPTIONS'])
-async def get_assets_info():
-    # await request.get_data()  # Full raw body
+@app.route('/assets/<user_token>', methods=['GET'])
+async def get_assets_info(user_token):
     print(f"received request for assets of user {user_token}")
     await get_assets(user_token)
     response = process_assets()
@@ -158,4 +145,4 @@ async def get_assets_info():
 
 if __name__ == "__main__":
     port = '8080'
-    app.run(port=port, host='localhost', debug=True, use_reloader=False)
+    app.run(port=port, host='0.0.0.0', debug=True, use_reloader=False)
