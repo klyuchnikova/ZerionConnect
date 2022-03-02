@@ -129,16 +129,7 @@ async def connect():
     await connect_socket()
     return "Connected"
 
-
 @app.route('/profile/<user_token>', methods=['GET'])
-async def get_profile_info(user_token):
-    print(f"received request for profile of user {user_token}")
-    await request_profile(user_token)
-    response = process_profile()
-    return jsonify(response)
-
-
-@app.route('/subscribe/profile/<user_token>', methods=['GET'])
 async def subscribe_profile_info(user_token):
     print(f"received request for profile of user {user_token}")
     await request_profile(user_token, 'subscribe')
@@ -146,7 +137,7 @@ async def subscribe_profile_info(user_token):
     return jsonify(response)
 
 
-@app.route('/subscribe/assets/<user_token>', methods=['GET'])
+@app.route('/assets/<user_token>', methods=['GET'])
 async def subscribe_assets_info(user_token):
     print(f"received request for assets of user {user_token}")
     await request_assets(user_token, 'subscribe')
